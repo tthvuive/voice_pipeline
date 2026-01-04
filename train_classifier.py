@@ -4,7 +4,10 @@ from utils_audio import load_wav
 from embedding import extract_embedding
 from classifier import SoftmaxClassifier
 
-DATA_DIR = "data/train"
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = str(BASE_DIR / "data" / "train")
 
 X, y = [], []
 label_map = {}
@@ -29,9 +32,9 @@ y = np.array(y)
 clf = SoftmaxClassifier(input_dim=X.shape[1], num_classes=len(label_map))
 clf.train(X, y, epochs=120)
 
-os.makedirs("models", exist_ok=True)
+os.makedirs(str(BASE_DIR / "models"), exist_ok=True)
 np.savez(
-    "models/speaker_model.npz",
+    str(BASE_DIR / "models" / "speaker_model.npz"),
     W=clf.W,
     b=clf.b,
     label_map=label_map

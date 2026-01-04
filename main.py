@@ -1,45 +1,20 @@
-from utils_audio import load_wav
-from utils_audio import sec_to_mmss, merge_segments
-from segmentation import segment_audio
-from embedding import extract_embedding
-from predict_speaker import load_model
-from asr import transcribe
-SEGMENT_LEN = 1   # seconds
 
+import argparse
+from pipeline import run_speaker_diarization_asr
 
-wav = load_wav("data/test/conversation.wav")
+def main():
+    parser = argparse.ArgumentParser(description="Speaker diarization + ASR pipeline")
+    parser.add_argument("--test", required=True, help="Path to test wav file, e.g. data/test/conversation.wav")
+    parser.add_argument("--model", default="models/speaker_model.npz", help="Path to model .npz")
+    parser.add_argument("--segment-len", type=float, default=1.5, help="Segment length in seconds")
+    args = parser.parse_args()
 
-segments = segment_audio(wav)
+    _, pretty = run_speaker_diarization_asr(
+        wav_path=args.test,
+        model_path=args.model,
+        segment_len=args.segment_len,
+    )
+    print(pretty)
 
-clf, label_map = load_model("models/speaker_model.npz")
-
-results = []
-
-for start, seg in segments:
-    end = start + SEGMENT_LEN
-
-    emb = extract_embedding(seg).reshape(1, -1)
-    spk_id = clf.predict(emb)[0]
-    text = transcribe(seg)
-
-    results.append({
-        "start": start,
-        "end": end,
-        "speaker": chr(ord("A") + spk_id),
-        "text": text
-    })
-
-# 5. MERGE timeline
-merged = merge_segments(results)
-
-# 6. PRINT FINAL OUTPUT
-print("\n===== FINAL TIMELINE =====\n")
-
-for seg in merged:
-    if not seg["text"].strip():
-        continue
-
-    start = sec_to_mmss(seg["start"])
-    end = sec_to_mmss(seg["end"])
-
-    print(f"{start} – {end} | Speaker {seg['speaker']}: {seg['text']}")
+if __name__ == "__main__":
+    main()
